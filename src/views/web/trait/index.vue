@@ -3,8 +3,8 @@
     <div class="search-wrapper">
       <el-form ref="search" label-width="80px" :model="search">
         <el-row>
-          <el-col :span="6">
-            <el-form-item label="广告标题">
+          <el-col :span="5">
+            <el-form-item label="标题">
               <el-input v-model="search.title"/>
             </el-form-item>
           </el-col>
@@ -14,7 +14,7 @@
               <i class="el-icon-search"></i>
               搜索
             </el-button>
-            <el-button @click="doReset('search')" type="info">
+            <el-button @click="$refs.search.resetFields()" type="info">
               <i class="el-icon-refresh"></i>
               重置
             </el-button>
@@ -29,58 +29,68 @@
           新增
         </el-button>
       </div>
-      <el-table :data="tableData">
-        <el-table-column prop="title" label="广告标题"/>
+      <el-table :data="tableData" v-loading="listLoading">
+        <el-table-column prop="title" label="标题"/>
         <el-table-column prop="titleSm" label="子标题"/>
         <el-table-column prop="bannerSrc" label="图片" align="center">
           <template slot-scope="scope">
             <div>
-              <img height="31px" :src="scope.row.bannerSrc">
+              <img height="31px" :src="scope.row.imgSrc">
             </div>
           </template>
         </el-table-column>
+        <el-table-column prop="content" label="内容" show-overflow-tooltip align="center"/>
         <el-table-column prop="use" label="是否使用" align="center">
           <template slot-scope="scope">
             <div v-html="dictFormat(scope.row.use)"></div>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" align="center"
+        <el-table-column prop="createTime" label="创建时间" align="center" show-overflow-tooltip
                          :formatter="(row) => new Date(row.createTime).toLocaleString()"/>
-        <el-table-column prop="updateTime" label="修改时间" align="center"
+        <el-table-column prop="updateTime" label="修改时间" align="center" show-overflow-tooltip
                          :formatter="(row) => row.updateTime ? new Date(row.updateTime).toLocaleString() : '-'"/>
         <el-table-column label="操作" fixed="right" align="center">
           <template slot-scope="scope">
             <div>
               <el-button type="text" @click="edit(scope.row)">修改</el-button>
-              <el-button type="text" @click="showImg(scope.row.bannerSrc)">查看</el-button>
-              <el-button type="text" @click="rm(scope.row.id)">删除</el-button>
+              <el-button type="text" @click="rm(scope.row.traitId)">删除</el-button>
             </div>
           </template>
         </el-table-column>
       </el-table>
     </div>
-    <div class="page-wrapper"></div>
-    <el-dialog :close-on-click-modal="false" :visible.sync="showEdit" :title="title" v-loading="loading">
+    <div class="page-wrapper">
+      <el-pagination
+        layout="total, prev, pager, next"
+        @current-change="handlePageChange"
+        :total="search.total"
+        :page-size="search.pageSize">
+      </el-pagination>
+    </div>
+    <el-dialog :close-on-click-modal="false" :visible.sync="showEdit" :title="title" v-loading="editLoading">
       <el-form ref="edit" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="广告标题" prop="title">
+        <el-form-item label="标题" prop="title">
           <el-input v-model="form.title"/>
         </el-form-item>
         <el-form-item label="子标题" prop="titleSm">
           <el-input v-model="form.titleSm"/>
         </el-form-item>
-        <el-form-item label="广告状态" prop="use">
-          <el-switch v-model="form.use" active-text="使用中" inactive-text="未使用" active-value="1" inactive-value="0"/>
+        <el-form-item label="内容" prop="content">
+          <el-input show-word-limit type="textarea" :autosize="{maxRows: 3, minRows: 3}" maxlength="40"
+                    v-model="form.content"/>
+        </el-form-item>
+        <el-form-item label="状态" prop="use">
+          <el-switch v-model="form.use" active-value="1" inactive-value="0" inactive-text="未使用" active-text="使用中"/>
         </el-form-item>
         <el-form-item label="图片">
           <el-upload
+            class="upload-demo"
             action="/bgData/file/upload"
             :limit="1"
-            :on-success="onUploadSuccess"
-            :on-progress="progress"
-            class="upload-demo"
-            :file-list="fileList"
-            :show-file-list="true"
-            :on-remove="handleRemove">
+            show-file-list
+            :on-success="handleSuccess"
+            :on-exceed="handleExceed"
+            :file-list="fileList">
             <el-button size="small" type="primary">点击上传</el-button>
             <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
           </el-upload>
@@ -91,42 +101,41 @@
         </el-form-item>
       </el-form>
     </el-dialog>
-    <el-dialog :visible.sync="showView" title="图片查看">
-      <img style="width: 100%" :src="viewImg">
-    </el-dialog>
   </div>
 </template>
-<script>
-import {delBanner, getBannerList, saveBanner} from "../../../api/banner";
-import {dictFormatter, getDictDataList} from "../../../api/dict";
-import {ajaxCallback} from "../../../util/callbackUtil";
-import {fileUpload, getFileInfoById} from "../../../api/file";
 
-const dictType = 'banner_status';
+<script>
+import {getTraitList, removeTrait, saveTrait} from "../../../api/trait";
+
+const dictType = 'element_use_status';
+import {dictFormatter, getDictDataListByDictType} from "../../../api/dict";
+import {ajaxCallback} from "../../../util/callbackUtil";
+import {getFileInfoById} from "../../../api/file";
 
 export default {
   name: "index",
   data() {
     return {
       title: undefined,
-      search: {},
+      search: {title: undefined},
       form: {},
       showEdit: false,
-      showView: false,
-      viewImg: undefined,
       dictDataList: [],
-      fileList: [],
       rules: {
         title: [
           {required: true, message: '请输入标题', trigger: 'blur'}
         ],
         titleSm: [
           {required: true, message: '请输入子标题', trigger: 'blur'}
+        ],
+        content: [
+          {required: true, message: '请输入内容', trigger: 'blur'}
         ]
       },
       tableData: [],
-      file: undefined,
-      loading: false
+      editLoading: false,
+      listLoading: false,
+      fileList: []
     }
   },
   created() {
@@ -134,93 +143,90 @@ export default {
     this.getDictDataList();
   },
   methods: {
-    showImg(src){
-      console.log(src);
-      this.showView = true;
-      this.viewImg = src;
+    handlePageChange(val) {
+      this.search.pageNum = val;
+      this.getTableData();
     },
-    onUploadSuccess(response, file, fileList){
-      this.form.fileId = response.data.fileId;
+    handleSuccess(response, file, fileList) {
       this.fileList = fileList;
+      this.form.fileId = response.data.fileId;
     },
-    progress() {
+    handleExceed(files, fileList) {
+      this.$message.warning(`当前限制选择 1 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
     },
-    fileUpload(request) {
-      fileUpload(request.file).then(res => {
-        ajaxCallback(res, () => {
-          console.log(res);
-          this.form.fileId = res.data.fileId;
-        })
-      });
-    },
-    handleRemove(file, fileList) {
-      console.log(file, fileList);
-    },
-    getTableData(form) {
-      getBannerList(form).then(res => {
-        this.tableData = res.data;
+    getTableData() {
+      this.listLoading = true;
+      getTraitList(this.search).then(res => {
+        this.tableData = res.data.list;
+        this.search.pageSize = res.data.pageSize;
+        this.search.pageNum = res.data.pageNum;
+        this.search.total = res.data.total;
+        this.listLoading = false;
+      }).catch(reason => {
+        this.listLoading = false;
       })
     },
     dictFormat(val) {
       return dictFormatter(this.dictDataList, val);
     },
     getDictDataList() {
-      getDictDataList(dictType).then(res => {
+      getDictDataListByDictType(dictType).then(res => {
         this.dictDataList = res.data;
       })
     },
     doSearch() {
-      this.getTableData(this.search);
+      this.getTableData();
     },
-    doReset(formName) {
-      this[formName] = {use: "0"};
+    doReset() {
+      this.form = {
+        title: undefined,
+        titleSm: undefined,
+        content: undefined,
+        fileId: undefined,
+        traitId: undefined
+      }
     },
     edit(row) {
+      this.doReset();
       this.form = row;
-      this.showEdit = true;
+      this.fileList.splice(0);
       getFileInfoById(row.fileId).then(res => {
-        this.fileList.length = 0;
-        this.fileList.push(res.data);
-      });
-      this.title = '修改广告';
+        this.fileList.push({name: res.data.originalName});
+      })
+      this.showEdit = true;
+      this.title = '修改特点信息';
     },
     add() {
-      this.file = undefined;
-      this.fileList = [];
-      this.doReset('form');
-      this.title = '添加广告';
+      this.doReset();
+      this.title = '添加特点信息';
+      this.fileList.splice(0);
       this.showEdit = true;
     },
     rm(id) {
-      delBanner(id);
+      removeTrait(id, () => {
+        this.getTableData();
+      })
     },
     save() {
       this.$refs['edit'].validate(valid => {
         if (valid) {
-          if(!this.form.fileId){
-            ajaxCallback({code: '-1', message: '请选择图片文件'});
+          if (!this.form.fileId) {
+            this.$message.warning("还未选择图片文件");
             return false;
           }
-          this.loading = true;
-          //do submit
-          saveBanner(this.form).then(res => {
+          this.editLoading = true;
+          saveTrait(this.form).then(res => {
             ajaxCallback(res, () => {
-              this.loading = false;
               this.getTableData();
               this.showEdit = false;
-            });
-          }, reject => {
-            this.loading = false;
+            })
+            this.editLoading = false;
+          }).catch(() => {
+            this.editLoading = false;
           })
-        } else {
-          return false;
         }
       });
     }
   }
 }
 </script>
-
-<style scoped>
-
-</style>

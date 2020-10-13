@@ -14,7 +14,7 @@
               <i class="el-icon-search"></i>
               搜索
             </el-button>
-            <el-button type="info" @click="doReset">
+            <el-button type="info" @click="doReset('search')">
               <i class="el-icon-refresh"></i>
               重置
             </el-button>
@@ -54,7 +54,14 @@
         </el-table>
       </div>
     </div>
-    <div class="page-wrapper"></div>
+    <div class="page-wrapper">
+      <el-pagination
+        layout="total, prev, pager, next"
+        @current-change="handlePageChange"
+        :total="search.total"
+        :page-size="search.pageSize">
+      </el-pagination>
+    </div>
     <el-dialog :title="title" :visible.sync="showEdit">
       <el-form ref="edit" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="字典名称">
@@ -83,7 +90,7 @@
 
 <script>
 const dictType = 'system_status';
-import {dictFormatter, dictTypeRemove, dictTypeSave, getDictDataList, getDictTypeList} from "../../../api/dict";
+import {dictFormatter, dictTypeRemove, dictTypeSave, getDictDataListByDictType, getDictTypeList} from "../../../api/dict";
 import {ajaxCallback} from "../../../util/callbackUtil";
 
 export default {
@@ -103,23 +110,29 @@ export default {
     }
   },
   methods: {
-    getDictDataList(dictType){
-      getDictDataList(dictType).then(res => {
+    handlePageChange(val) {
+      this.search.pageNum = val;
+      this.getTableData();
+    },
+    getDictDataList(){
+      getDictDataListByDictType(dictType).then(res => {
         this.dictDataList = res.data;
       })
     },
-    doReset(){
-      this.search = {};
-      this.getDictTypeList();
+    doReset(formName){
+      this.$refs[formName].resetFields();
     },
     doSearch(){
-      this.getDictTypeList(this.search);
+      this.getDictTypeList();
     },
-    getDictTypeList(form) {
+    getDictTypeList() {
       this.isLoading = true;
-      getDictTypeList(form).then(res => {
-        this.dictTypeList = res.data;
+      getDictTypeList(this.search).then(res => {
+        this.dictTypeList = res.data.list;
         this.isLoading = false;
+        this.search.pageSize = res.data.pageSize;
+        this.search.pageNum = res.data.pageNum;
+        this.search.total = res.data.total;
       });
     },
     edit(row){
@@ -160,7 +173,7 @@ export default {
   },
   created() {
     this.getDictTypeList();
-    this.getDictDataList(dictType);
+    this.getDictDataList();
   }
 }
 </script>

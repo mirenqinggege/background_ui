@@ -17,7 +17,7 @@
       </el-aside>
       <el-main>
         <tab-bar/>
-        <keep-alive name="">
+        <keep-alive :include="cachedViews">
           <router-view></router-view>
         </keep-alive>
       </el-main>
@@ -30,6 +30,7 @@ import {getTreeMenu} from "../api/menu";
 import {mapGetters} from "vuex"
 import MenuItem from "./menuItem";
 import tabBar from "./tabBar";
+
 export default {
   name: 'HelloWorld',
   components: {MenuItem, tabBar},
@@ -45,8 +46,11 @@ export default {
   },
   computed: {
     ...mapGetters(["routes"]),
-    activeItem(){
+    activeItem() {
       return this.$route.path;
+    },
+    cachedViews(){
+      return this.$store.getters.cachedViews;
     }
   },
   methods: {
@@ -73,14 +77,20 @@ export default {
   }
 
   .el-container {
-    .el-main{
+    .el-main {
       padding-left: 0;
       padding-right: 0;
       padding-top: 10px;
-      .wrapper + .wrapper{
-        padding: 0 10px;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+
+      .wrapper + .wrapper {
+        padding: 10px 10px;
+        height: calc(100% - 23px);
+        overflow-y: auto;
       }
     }
+
     .el-aside {
 
       .el-menu {
@@ -103,6 +113,18 @@ export default {
 .el-submenu {
   .el-submenu__title {
     text-align: left;
+  }
+}
+
+.el-container {
+  .el-main {
+    .wrapper + .wrapper {
+      .page-wrapper {
+        padding: 10px;
+        display: flex;
+        justify-content: flex-end;
+      }
+    }
   }
 }
 </style>

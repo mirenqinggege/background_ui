@@ -9,10 +9,18 @@ export function getDictTypeList(form){
   });
 }
 
-export function getDictDataList(dictType){
+export function getDictDataList(form){
   return request({
-    url: `/dict/getDictDataList/${dictType}`,
-    method: "get"
+    url: `/dict/getDictDataList`,
+    method: "get",
+    params: form
+  })
+}
+
+export function getDictDataListByDictType(dictType){
+  return request({
+    url: `/dict/getDictDataListByDictType/${dictType}`,
+    method: 'get'
   })
 }
 

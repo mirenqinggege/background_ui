@@ -1,6 +1,5 @@
 import request from '../../util/request'
-import {MessageBox} from "element-ui";
-import {ajaxCallback} from "../../util/callbackUtil";
+import {confirmBeforeRemove} from "../../util/callbackUtil";
 
 export function getBannerList(form){
   return request({
@@ -19,15 +18,5 @@ export function saveBanner(form){
 }
 
 export function delBanner(id){
-  MessageBox({
-    type: 'warning',
-    message: '确定要删除吗（此操作无法恢复）',
-    confirmButtonText: '确定',
-    showCancelButton: true,
-    cancelButtonText: '取消'
-  }).then(() => {
-    request({url: `/banner/delBanner/${id}`, method: 'delete'}).then(res => {
-      ajaxCallback(res);
-    });
-  })
+  confirmBeforeRemove({url: `/banner/delBanner/${id}`, method: 'delete'}, arguments[1], arguments[2]);
 }

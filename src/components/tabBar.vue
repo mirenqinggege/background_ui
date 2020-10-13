@@ -19,13 +19,27 @@ export default {
   created() {
     this.routes = this.$store.getters.routesHistory;
   },
+  watch: {
+    $route(){
+      this.addTags();
+    }
+  },
   methods: {
+    addTags(){
+      const {name} = this.$route;
+      if (name) {
+        this.$store.dispatch('cacheViews/addView', this.$route);
+      }
+    },
     handleClose(item) {
       this.$store.dispatch("delHistory", item).then(resolve => {
         if (this.$route.name === item.name) {
           this.$router.push(this.routes[this.routes.length - 1]);
         }
       });
+      this.$store.dispatch('cacheViews/delView', item).then(resolve => {
+
+      })
     },
     handleClick(item) {
       if (this.$route.name !== item.name) {
@@ -45,7 +59,6 @@ export default {
 <style lang="less" scoped>
 div.wrapper {
   padding: 0 10px 10px 10px;
-  margin-bottom: 10px;
   border-bottom: 1px solid #DCDFE6;
 
   .el-tag + .el-tag {

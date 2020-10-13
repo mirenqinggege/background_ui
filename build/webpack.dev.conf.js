@@ -82,7 +82,10 @@ module.exports = new Promise((resolve, reject) => {
       // Add FriendlyErrorsPlugin
       devWebpackConfig.plugins.push(new FriendlyErrorsPlugin({
         compilationSuccessInfo: {
-          messages: [`Your application is running here: http://${devWebpackConfig.devServer.host}:${port}`],
+          messages: [
+            `Your application is running here: ${devWebpackConfig.devServer.host}:${port}`,
+            `你可以点击这里 http://localhost:${port} 开启浏览器`
+          ],
         },
         onErrors: config.dev.notifyOnErrors
         ? utils.createNotifierCallback()

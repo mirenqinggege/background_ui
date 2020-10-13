@@ -51,10 +51,17 @@
         </el-table-column>
       </el-table>
     </div>
-    <div class="page-wrapper"></div>
+    <div class="page-wrapper">
+      <el-pagination
+        layout="total, prev, pager, next"
+        @current-change="handlePageChange"
+        :total="search.total"
+        :page-size="search.pageSize">
+      </el-pagination>
+    </div>
     <el-dialog :title="title" :visible.sync="showEdit">
       <el-form :model="form" ref="edit" label-width="80px" :rules="rules">
-        <el-form-item label="字典类型" prop="dictType">
+        <el-form-item label="字典类型">
           <el-input v-model="form.dictType" disabled/>
         </el-form-item>
         <el-form-item label="标签" prop="label">
@@ -103,24 +110,32 @@ export default {
     }
   },
   created() {
-    this.doReset("search");
+    this.search.dictType = this.$route.query.dictType;
+    this.form.dictType = this.$route.query.dictType;
     this.getDictDataList();
   },
   methods: {
+    handlePageChange(val) {
+      this.search.pageNum = val;
+      this.getDictDataList();
+    },
     doSearch() {
       this.getDictDataList();
     },
     doReset(formName) {
-      this[formName] = this.$route.query;
+      this.$refs[formName] && this.$refs[formName].resetFields();
     },
     getDictDataList() {
-      const dictType = this.$route.query.dictType;
-      getDictDataList(dictType).then(res => {
-        this.dictDataList = res.data;
+      this.search.dictType = this.$route.query.dictType;
+      getDictDataList(this.search).then(res => {
+        this.dictDataList = res.data.list;
+        this.search.pageSize = res.data.pageSize;
+        this.search.pageNum = res.data.pageNum;
+        this.search.total = res.data.total;
       })
     },
     add() {
-      this.doReset("form");
+      this.doReset("edit");
       this.title = "新增字典数据";
       this.showEdit = true;
     },

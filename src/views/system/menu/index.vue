@@ -153,7 +153,7 @@ import {getMenuInfo, getTreeMenu, remove, save, searchMenus} from "../../../api/
 import IconSelect from "../../../components/iconSelect/IconSelect";
 import MenuTree from "../../../components/menuTree";
 import {ajaxCallback} from "../../../util/callbackUtil";
-import {dictFormatter, getDictDataList} from "../../../api/dict";
+import {dictFormatter, getDictDataListByDictType} from "../../../api/dict";
 
 export default {
   name: "index",
@@ -186,11 +186,11 @@ export default {
   },
   created() {
     this.getTreeMenu();
-    this.getDictDataList(dictType);
+    this.getDictDataList();
   },
   methods: {
-    getDictDataList(dictType){
-      getDictDataList(dictType).then(res => {
+    getDictDataList(){
+      getDictDataListByDictType(dictType).then(res => {
         this.dictDataList = res.data;
       })
     },
@@ -238,9 +238,9 @@ export default {
       });
     },
     rm(id) {
-      remove(id).then(res => {
-        ajaxCallback(res);
-      });
+      remove(id, () => {
+        this.getTreeMenu();
+      })
     },
     selectIcon(icon) {
       this.form.icon = icon;

@@ -1,4 +1,5 @@
 import request from '../../util/request'
+import {confirmBeforeRemove} from "../../util/callbackUtil";
 
 
 export function getTreeMenu(form) {
@@ -47,8 +48,5 @@ export function getRoutes() {
 }
 
 export function remove(id){
-  return request({
-    url: `/menu/deleteById/${id}`,
-    method: "delete"
-  })
+  confirmBeforeRemove({url: `/menu/deleteById/${id}`, method: "delete"}, arguments[1], arguments[2]);
 }
